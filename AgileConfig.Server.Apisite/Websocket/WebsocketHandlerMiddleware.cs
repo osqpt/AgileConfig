@@ -32,19 +32,23 @@ namespace AgileConfig.Server.Apisite.Websocket
             _websocketCollection = WebsocketCollection.Instance;
         }
 
-        public async Task Invoke(HttpContext context, IAppService appService, IConfigService configService)
+        public async Task Invoke(HttpContext context, IAppBasicAuthService appBasicAuth, IConfigService configService)
         {
             if (context.Request.Path == "/ws")
             {
                 if (context.WebSockets.IsWebSocketRequest)
                 {
-                    var basicAuth = new BasicAuthenticationAttribute(appService);
-                    if (!await basicAuth.Valid(context.Request))
+                    if (!await appBasicAuth.ValidAsync(context.Request))
                     {
-                        await context.Response.WriteAsync("closed");
+                        await context.Response.WriteAsync("basic auth failed .");
                         return;
                     }
                     var appId = context.Request.Headers["appid"];
+                    if (string.IsNullOrEmpty(appId))
+                    {
+                        var appIdSecret = appBasicAuth.GetAppIdSecret(context.Request);
+                        appId = appIdSecret.Item1;
+                    }
                     WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
                     var client = new WebsocketClient()
                     {

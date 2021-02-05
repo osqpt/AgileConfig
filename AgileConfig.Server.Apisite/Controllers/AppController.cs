@@ -80,6 +80,7 @@ namespace AgileConfig.Server.Apisite.Controllers
 
             return Json(new
             {
+                data = app,
                 success = result,
                 message = !result ? "新建应用失败，请查看错误日志" : ""
             });
@@ -225,6 +226,43 @@ namespace AgileConfig.Server.Apisite.Controllers
                     LogTime = DateTime.Now,
                     LogType = SysLogType.Normal,
                     LogText = $"{(app.Enabled ? "启用" : "禁用")}应用【AppId】:{app.Id}"
+                });
+            }
+
+            return Json(new
+            {
+                success = result,
+                message = !result ? "修改应用失败，请查看错误日志" : ""
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Delete(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentNullException("id");
+            }
+
+            var app = await _appService.GetAsync(id);
+            if (app == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "未找到对应的应用程序。"
+                });
+            }
+
+            var result = await _appService.DeleteAsync(app);
+
+            if (result)
+            {
+                await _sysLogService.AddSysLogAsync(new SysLog
+                {
+                    LogTime = DateTime.Now,
+                    LogType = SysLogType.Normal,
+                    LogText = $"删除应用【AppId】:{app.Id}"
                 });
             }
 
